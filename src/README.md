@@ -1,9 +1,6 @@
 # Banking Core
 
-Backend inicial en **Java + Spring Boot** para el proyecto portfolio.
-
-## Nombre del proyecto
-El nombre definido para este backend es **Banking Core** (basado en la conversación de diseño, donde se propuso y recomendó “Banking Core” como dominio principal).
+Backend inicial en **Java + Spring Boot** para el proyecto.
 
 ## Stack
 - Java 21
