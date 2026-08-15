@@ -1,4 +1,4 @@
-package com.bankingcore.backend.auth.dtos;
+package com.bankingcore.backend.auth.web.dtos;
 
 public record AuthResponse(Long userId, String email, String token) {
 }

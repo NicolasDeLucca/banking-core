@@ -1,19 +1,18 @@
 package com.bankingcore.backend.shared.error;
 
-import org.springframework.http.HttpStatus;
+/**
+ * Base type for every business/domain error in the system.
+ * Intentionally free of any HTTP concept (status codes, headers, etc.):
+ * mapping to a transport-level response is a web/infrastructure responsibility,
+ * handled by {@link GlobalExceptionHandler}.
+ */
+public abstract class DomainException extends RuntimeException {
 
-public class DomainException extends RuntimeException {
-    private final HttpStatus status;
     private final String code;
 
-    public DomainException(String message, HttpStatus status, String code) {
+    protected DomainException(String message, String code) {
         super(message);
-        this.status = status;
         this.code = code;
-    }
-
-    public HttpStatus getStatus() {
-        return status;
     }
 
     public String getCode() {

@@ -1,10 +1,11 @@
-package com.bankingcore.backend.users;
+package com.bankingcore.backend.auth.infrastructure.persistence;
 
+import com.bankingcore.backend.auth.domain.UserRole;
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "users")
-public class UserEntity {
+public class UserJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,6 +21,17 @@ public class UserEntity {
     @Column(nullable = false)
     private UserRole role;
 
+    protected UserJpaEntity() {
+        // required by JPA
+    }
+
+    public UserJpaEntity(Long id, String email, String passwordHash, UserRole role) {
+        this.id = id;
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.role = role;
+    }
+
     public Long getId() {
         return id;
     }
@@ -28,23 +40,11 @@ public class UserEntity {
         return email;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
     public String getPasswordHash() {
         return passwordHash;
     }
 
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
-    }
-
     public UserRole getRole() {
         return role;
-    }
-
-    public void setRole(UserRole role) {
-        this.role = role;
     }
 }

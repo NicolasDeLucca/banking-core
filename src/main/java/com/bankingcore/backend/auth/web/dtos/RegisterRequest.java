@@ -1,4 +1,4 @@
-package com.bankingcore.backend.auth.dtos;
+package com.bankingcore.backend.auth.web.dtos;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
