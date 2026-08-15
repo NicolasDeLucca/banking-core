@@ -1,8 +1,9 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:bankingcore;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
-    username: sa
-    password:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:bankingcore}
+    username: ${DB_USER:bankingcore}
+    password: ${DB_PASSWORD:bankingcore}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
@@ -10,15 +11,16 @@ spring:
     properties:
       hibernate:
         format_sql: true
-  h2:
-    console:
-      enabled: true
 
 server:
   port: 8080
 
 app:
   jwt:
-    # minimum recommended length for HS256 key
-    secret: "replace-this-with-a-very-long-dev-secret-at-least-32-chars"
-    expiration-seconds: 10800
+    # dev-only placeholder; override with a real secret via JWT_SECRET in production
+    secret: ${JWT_SECRET:replace-this-with-a-very-long-dev-secret-at-least-32-chars}
+    expiration-seconds: ${JWT_EXPIRATION_SECONDS:10800}
+  admin:
+    # seeded on startup if no user with this email exists yet; override in production
+    email: ${ADMIN_EMAIL:admin@bankingcore.local}
+    password: ${ADMIN_PASSWORD:ChangeMe123!}

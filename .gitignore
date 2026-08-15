@@ -37,6 +37,8 @@ buildNumber.properties
 *.pid
 *.seed
 *.pid.lock
+.env
+logs/
 
 # =========================
 
