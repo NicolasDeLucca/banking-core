@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<ruleset name="Banking Core PMD Rules"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>
+        Curated rules for this project: real code-smell/best-practice and
+        complexity signal, minus rules that fight the project's deliberate
+        architecture or are commonly noisy in idiomatic modern Java. One-off
+        exceptions to what's left are suppressed inline with `// NOPMD` and a
+        reason, not by disabling a rule project-wide.
+    </description>
+
+    <rule ref="category/java/bestpractices.xml" />
+
+    <rule ref="category/java/design.xml">
+        <!-- Flags every @SpringBootApplication main class as "should be a
+             utility class" - a well-known false positive in Spring Boot. -->
+        <exclude name="UseUtilityClass" />
+        <!-- JPA entities/DTOs are intentionally data-only by design (Option B:
+             behavior lives in the domain, not the persistence/web layer). -->
+        <exclude name="DataClass" />
+        <!-- Too many false positives on ordinary getter chains and fluent
+             builders (e.g. Jwts.parser().verifyWith(key).build()...). -->
+        <exclude name="LawOfDemeter" />
+        <!-- Needs a configured package allow-list to be meaningful; not set up. -->
+        <exclude name="LoosePackageCoupling" />
+        <!-- Would push toward wrapper classes with no real behavior difference
+             from the named parameters they'd replace. -->
+        <exclude name="UseObjectForClearerAPI" />
+    </rule>
+    <rule ref="category/java/design.xml/TooManyMethods">
+        <properties>
+            <!-- Rich domain entities (e.g. Account) legitimately need more than
+                 the default 10 to stay behavior-rich instead of anemic. -->
+            <property name="maxmethods" value="20" />
+        </properties>
+    </rule>
+
+    <rule ref="category/java/errorprone.xml">
+        <!-- These exceptions are never serialized across a JVM/network
+             boundary in this app - the field would be pure noise. -->
+        <exclude name="MissingSerialVersionUID" />
+    </rule>
+</ruleset>

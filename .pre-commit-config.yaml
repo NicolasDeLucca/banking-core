@@ -1,0 +1,12 @@
+# Catches secrets before they leave your machine, instead of after a push.
+# One-time setup:
+#   pip install pre-commit
+#   pre-commit install
+#   export GITGUARDIAN_API_KEY=<your personal GitGuardian API key>
+repos:
+  - repo: https://github.com/GitGuardian/ggshield
+    rev: v1.53.0
+    hooks:
+      - id: ggshield
+        language_version: python3
+        stages: [pre-commit]

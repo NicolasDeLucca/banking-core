@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:bankingcore-test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+
+app:
+  jwt:
+    # Not a real secret: fixture data for the test H2 database, never deployed.
+    secret: "this-is-test-fixture-data-not-a-real-secret-do-not-reuse-it"
+    expiration-seconds: 3600
+  admin:
+    email: admin@bankingcore.local
+    # Not a real secret: fixture data for the test H2 database, never deployed.
+    password: "this-is-test-fixture-data-not-a-real-secret-do-not-reuse-it"
