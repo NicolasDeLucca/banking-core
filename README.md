@@ -20,6 +20,7 @@ reason attached to it.
 - [Testing](#testing)
 - [CI](#ci)
 - [Design decisions & known trade-offs](#design-decisions--known-trade-offs)
+- [4+1 architectural views](docs/4+1-views.md)
 
 ## Objective
 
@@ -34,7 +35,7 @@ internally organized by *business module* rather than by technical layer
 (no project-wide `controller/`, `service/`, `repository/` packages) —
 each module owns its own layers instead:
 
-```
+```text
 module/
 ├── domain/          entities, value objects, business rules, repository
 │                    interfaces — no Spring, no JPA, no HTTP
@@ -95,7 +96,7 @@ survives the rollback of the failed login itself.
 ## Modules
 
 | Module | Owns |
-|---|---|
+| --- | --- |
 | `auth` | Registration, login, JWT issuance/validation, password hashing |
 | `account` | Accounts, balances, deposits/withdrawals, transfers, admin account management |
 | `transaction` | The financial ledger — one immutable entry per movement |
@@ -163,7 +164,7 @@ All endpoints except `/api/auth/**` require `Authorization: Bearer <token>`.
 `/api/admin/**` additionally requires the `ADMIN` role.
 
 | Method | Path | Description |
-|---|---|---|
+| --- | --- | --- |
 | POST | `/api/auth/register` | Create a USER account, returns a token |
 | POST | `/api/auth/login` | Authenticate, returns a token |
 | POST | `/api/accounts` | Open an account for the current user |
@@ -193,7 +194,7 @@ missing.
 Copy [`.env.example`](.env.example) to `.env` and fill in real values:
 
 | Variable | Purpose |
-|---|---|
+| --- | --- |
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | PostgreSQL connection |
 | `JWT_SECRET` | HMAC signing key (32+ random chars) |
 | `JWT_EXPIRATION_SECONDS` | Token lifetime (default 10800 = 3h) |
