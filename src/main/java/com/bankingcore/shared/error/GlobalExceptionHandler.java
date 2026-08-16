@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.bankingcore.shared.error.dtos.ApiErrorResponse;
 
@@ -51,6 +52,17 @@ public class GlobalExceptionHandler {
                 .orElse("Invalid request");
 
         return ResponseEntity.badRequest().body(new ApiErrorResponse("BAD_REQUEST", message));
+    }
+
+    // Spring throws this (instead of just answering 404) for any request path
+    // that doesn't match a controller mapping or a static resource - without
+    // this handler it was falling through to the generic Exception handler
+    // below and coming back as a misleading 500 "Unexpected server error"
+    // for every unknown route.
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleNoResourceFound(NoResourceFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiErrorResponse("NOT_FOUND", "No such endpoint"));
     }
 
     @ExceptionHandler(Exception.class)

@@ -34,6 +34,30 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in your .env file (copy .env.example)}
     ports:
       - "${APP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 3s
+      start_period: 30s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Baked into the JS bundle at build time (Vite), not read at
+        # container start. Defaults to the app service's host-published
+        # port, since the browser reaches both services via localhost, not
+        # via Docker's internal network. Override if APP_PORT is not 8080.
+        VITE_API_BASE_URL: http://localhost:${APP_PORT:-8080}
+    container_name: banking-core-frontend
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      # 5173 by default so it lines up with app's CORS_ALLOWED_ORIGINS
+      # default (see application.yml / .env.example) with zero extra config.
+      - "${FRONTEND_PORT:-5173}:80"
 
 volumes:
   banking-core-db-data:
