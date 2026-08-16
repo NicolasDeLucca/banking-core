@@ -17,6 +17,7 @@ reason attached to it.
 - [API](#api)
 - [Configuration](#configuration)
 - [Running it](#running-it)
+- [Frontend](#frontend)
 - [Testing](#testing)
 - [CI](#ci)
 - [Design decisions & known trade-offs](#design-decisions--known-trade-offs)
@@ -221,6 +222,27 @@ as above exported in your shell.
 ```bash
 mvn spring-boot:run
 ```
+
+## Frontend
+
+A small React + Vite demo app in [`frontend/`](frontend/) — enough to see the
+API work end to end (register/login, open an account, deposit/withdraw/
+transfer, transaction history, and an admin view for the RBAC/audit
+endpoints), not a production frontend. State is just React context; no
+Redux/Zustand for something this size.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Runs at `http://localhost:5173` by default and expects the API at
+`http://localhost:8080` (override via `VITE_API_BASE_URL`, see
+[`frontend/.env.example`](frontend/.env.example)). The backend's CORS policy
+(`CorsConfigurationSource` in `SecurityConfig`) allows `http://localhost:5173`
+by default — override with `CORS_ALLOWED_ORIGINS` if the frontend runs
+somewhere else.
 
 ## Testing
 
