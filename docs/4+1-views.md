@@ -258,22 +258,30 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    Client[HTTP client<br/>Postman / browser / frontend]
+    Browser[Browser]
+    Client[Other HTTP client<br/>Postman / scripts]
 
     subgraph "Docker Compose network"
+        FE["banking-core-frontend<br/>(nginx, static React build, :5173)"]
         App["banking-core-app<br/>(Spring Boot, :8080)"]
         DB[("banking-core-db<br/>(PostgreSQL 16, :5432)")]
     end
 
+    Browser -->|HTTP| FE
+    Browser -->|HTTP + Bearer JWT<br/>fetch() from the served JS| App
     Client -->|HTTP + Bearer JWT| App
     App -->|JDBC| DB
 ```
 
-Today this is a single deployable talking to a single database instance —
-intentionally simple, matching the [Configuration](../README.md#configuration)
-and [Running it](../README.md#running-it) sections of the README. The
-modular monolith structure (see the [Architecture](../README.md#architecture)
-section) is what would let this evolve toward a different physical
-topology later — e.g. separate deployables per module behind a gateway —
-without a domain-layer rewrite, but that evolution hasn't happened and
-isn't claimed here.
+Today this is three deployables (frontend, API, database) talking over a
+single Docker Compose network — intentionally simple, matching the
+[Configuration](../README.md#configuration) and
+[Running it](../README.md#running-it) sections of the README. The
+frontend container only ever serves static files; it never proxies to the
+API, so the browser calls `banking-core-app` directly (hence the separate
+arrow above) rather than through `banking-core-frontend`. The modular
+monolith structure on the API side (see the
+[Architecture](../README.md#architecture) section) is what would let that
+service evolve toward a different physical topology later — e.g. separate
+deployables per module behind a gateway — without a domain-layer rewrite,
+but that evolution hasn't happened and isn't claimed here.

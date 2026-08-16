@@ -155,9 +155,15 @@ setter.
 
 ## Tech stack
 
-Java 21 · Spring Boot 3 · Spring Web · Spring Security · Spring Data JPA /
-Hibernate · JJWT · PostgreSQL (runtime) · H2 (tests only) · Maven · Docker /
-Docker Compose · JUnit 5 · Mockito · AssertJ · MockMvc · PMD · JaCoCo
+**Backend:** Java 21 · Spring Boot 3 · Spring Web · Spring Security ·
+Spring Data JPA / Hibernate · Spring Boot Actuator · JJWT · PostgreSQL
+(runtime) · H2 (tests only) · Maven · JUnit 5 · Mockito · AssertJ · MockMvc
+· PMD · JaCoCo
+
+**Frontend:** React 19 · Vite · react-router-dom · Playwright (agent-driven
+end-to-end harness) · nginx (containerized static serving)
+
+**Infra:** Docker · Docker Compose · GitHub Actions
 
 ## API
 
@@ -182,6 +188,7 @@ All endpoints except `/api/auth/**` require `Authorization: Bearer <token>`.
 | POST | `/api/admin/accounts/{id}/activate` | Reactivate a blocked account *(ADMIN)* |
 | POST | `/api/admin/accounts/{id}/close` | Force-close any account *(ADMIN)* |
 | GET | `/api/admin/audit-logs` | Full audit trail *(ADMIN)* |
+| GET | `/actuator/health` | Liveness check, public, backs the Docker `HEALTHCHECK` |
 
 ## Configuration
 
@@ -200,6 +207,8 @@ Copy [`.env.example`](.env.example) to `.env` and fill in real values:
 | `JWT_SECRET` | HMAC signing key (32+ random chars) |
 | `JWT_EXPIRATION_SECONDS` | Token lifetime (default 10800 = 3h) |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Seeded once on first startup |
+| `APP_PORT` | Host port for the API container (default 8080) |
+| `FRONTEND_PORT` | Host port for the frontend container (default 5173) |
 
 ## Running it
 
@@ -210,9 +219,19 @@ cp .env.example .env   # then fill in real values
 docker compose up -d --build
 ```
 
-This builds the app image (multi-stage `Dockerfile`) and starts it
-alongside a PostgreSQL container. The API is available at
-`http://localhost:8080`.
+This builds and starts all three containers: PostgreSQL, the API
+(multi-stage `Dockerfile`), and the frontend (`frontend/Dockerfile`,
+static build served by nginx). The API is available at
+`http://localhost:8080`, the frontend at `http://localhost:5173`. Each
+of the two app containers has a `HEALTHCHECK` (`docker compose ps` shows
+`healthy` once ready); the frontend waits on the API's before starting.
+
+To run only the backend (e.g. while developing the frontend locally with
+hot reload instead), omit the `frontend` service:
+
+```bash
+docker compose up -d --build app
+```
 
 ### Locally with Maven
 
@@ -231,6 +250,10 @@ transfer, transaction history, and an admin view for the RBAC/audit
 endpoints), not a production frontend. State is just React context; no
 Redux/Zustand for something this size.
 
+Included in `docker compose up` above (served by nginx from a static
+build — see [`frontend/Dockerfile`](frontend/Dockerfile)), or run it
+locally with hot reload:
+
 ```bash
 cd frontend
 npm install
@@ -239,10 +262,17 @@ npm run dev
 
 Runs at `http://localhost:5173` by default and expects the API at
 `http://localhost:8080` (override via `VITE_API_BASE_URL`, see
-[`frontend/.env.example`](frontend/.env.example)). The backend's CORS policy
-(`CorsConfigurationSource` in `SecurityConfig`) allows `http://localhost:5173`
-by default — override with `CORS_ALLOWED_ORIGINS` if the frontend runs
-somewhere else.
+[`frontend/.env.example`](frontend/.env.example) for the dev server, or the
+`VITE_API_BASE_URL` build arg in `docker-compose.yml` for the container —
+Vite bakes it into the JS at build time either way, not at container start).
+The backend's CORS policy (`CorsConfigurationSource` in `SecurityConfig`)
+allows `http://localhost:5173` by default — override with
+`CORS_ALLOWED_ORIGINS` if the frontend runs somewhere else.
+
+An agent-drivable Playwright harness lives at
+[`frontend/.claude/skills/run-frontend/`](frontend/.claude/skills/run-frontend/)
+for launching and driving the app end to end (register, create an account,
+deposit, check balance/history) without a human at the keyboard.
 
 ## Testing
 

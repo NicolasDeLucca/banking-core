@@ -52,7 +52,8 @@ for a production bundle, but the driver targets the dev server.)
    curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/auth/login
    ```
 
-2. **Start the frontend dev server** from `frontend/`:
+2. **Start the frontend.** Either the dev server (hot reload, best while
+   iterating on the driver or the app) from `frontend/`:
 
    ```bash
    npm run dev
@@ -60,7 +61,10 @@ for a production bundle, but the driver targets the dev server.)
 
    Vite serves on `http://localhost:5173`. It prints "ready" and keeps
    running in the foreground — background it or run it in a separate
-   terminal/tmux pane.
+   terminal/tmux pane. Or the containerized build (`docker compose up -d
+   --build` from the repo root also starts this alongside the backend —
+   see step 1) — same port, same driver, no separate step needed on that
+   path.
 
 3. **Drive it** with the REPL driver, piping a heredoc of commands to
    stdin (works both for a scripted one-shot run and, interactively,
