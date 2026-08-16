@@ -156,7 +156,7 @@ setter.
 
 Java 21 · Spring Boot 3 · Spring Web · Spring Security · Spring Data JPA /
 Hibernate · JJWT · PostgreSQL (runtime) · H2 (tests only) · Maven · Docker /
-Docker Compose · JUnit 5 · Mockito · AssertJ · MockMvc
+Docker Compose · JUnit 5 · Mockito · AssertJ · MockMvc · PMD · JaCoCo
 
 ## API
 
@@ -245,13 +245,38 @@ mvn test
 All of it runs against H2, so `mvn test` never needs Docker or a real
 database.
 
+### Code quality
+
+```bash
+mvn verify
+```
+
+Runs tests, then two static checks:
+
+- **PMD** ([`pmd-ruleset.xml`](pmd-ruleset.xml)) — code smells, best
+  practices and complexity (cyclomatic complexity, excessive class/method
+  size, etc.). **This gates the build.** The ruleset is curated, not the
+  PMD defaults wholesale: rules that fight this project's deliberate
+  architecture (e.g. `DataClass` flagging intentionally-thin JPA
+  entities/DTOs) or that are commonly noisy in idiomatic Java (e.g.
+  `LawOfDemeter` on ordinary getter chains) are excluded with a reason in
+  the ruleset file itself. The handful of remaining one-off exceptions are
+  suppressed inline with `// NOPMD` and a comment explaining why, not by
+  disabling a rule project-wide.
+- **JaCoCo** (`target/site/jacoco/index.html` after running) — coverage,
+  **informational only, no minimum threshold**. Consistent with this
+  project's testing philosophy above: report it, don't chase a number.
+  Currently around 94% line / 80% branch coverage.
+
 ## CI
 
 GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs
-on every push/PR to `master`/`develop`: build + test with dependency
-caching, JUnit results annotated on the run, and a separate job that
-builds the Docker image (layer-cached) to catch `Dockerfile` regressions.
-Can also be triggered manually via `workflow_dispatch`.
+on every push/PR to `master`/`develop`: `mvn verify` (build, test, PMD,
+coverage) with dependency caching, JUnit results annotated on the run,
+coverage commented on PRs, all three reports uploaded as artifacts, and a
+separate job that builds the Docker image (layer-cached) to catch
+`Dockerfile` regressions. Can also be triggered manually via
+`workflow_dispatch`.
 
 ## Design decisions & known trade-offs
 

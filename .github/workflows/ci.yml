@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   test:
-    name: Build & Test
+    name: Build, Test & Analyze
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -36,9 +36,13 @@ jobs:
           cache: maven
 
       # Tests run against H2 (src/test/resources/application.yml), so no
-      # database service container is needed here.
-      - name: Run tests
-        run: mvn -B clean test
+      # database service container is needed here. `verify` also runs, in
+      # order: JaCoCo coverage report (informational, no minimum threshold -
+      # this project deliberately doesn't chase 100% coverage) and PMD static
+      # analysis (this one *does* gate the build - see pmd-ruleset.xml for
+      # what's checked and why specific findings are excluded/suppressed).
+      - name: Build, test, lint & coverage
+        run: mvn -B clean verify
 
       - name: Publish test report
         if: always()
@@ -48,12 +52,38 @@ jobs:
           annotate_only: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Comment coverage on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: madrapps/jacoco-report@v1.7
+        with:
+          paths: target/site/jacoco/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: Coverage report
+          min-coverage-overall: 0
+          min-coverage-changed-files: 0
+
       - name: Upload surefire reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: surefire-reports
           path: target/surefire-reports/
+          retention-days: 7
+
+      - name: Upload PMD report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmd-report
+          path: target/pmd.xml
+          retention-days: 7
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
           retention-days: 7
 
   docker-build:
