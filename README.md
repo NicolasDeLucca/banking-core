@@ -268,6 +268,11 @@ Runs tests, then two static checks:
   project's testing philosophy above: report it, don't chase a number.
   Currently around 94% line / 80% branch coverage.
 
+Secret scanning runs on every push via GitGuardian. To catch a secret
+before it ever leaves your machine instead of after a push, install the
+pre-commit hook once: `pip install pre-commit && pre-commit install` (needs
+a personal `GITGUARDIAN_API_KEY` — see [`.pre-commit-config.yaml`](.pre-commit-config.yaml)).
+
 ## CI
 
 GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs
