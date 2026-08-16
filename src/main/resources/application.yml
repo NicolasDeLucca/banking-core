@@ -28,3 +28,6 @@ app:
     # on purpose - see DB_PASSWORD above.
     email: ${ADMIN_EMAIL:admin@bankingcore.local}
     password: ${ADMIN_PASSWORD}
+  cors:
+    # Comma-separated. Defaults to the frontend's local Vite dev server.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
