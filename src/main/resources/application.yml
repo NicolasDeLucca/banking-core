@@ -2,7 +2,10 @@ spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:bankingcore}
     username: ${DB_USER:bankingcore}
-    password: ${DB_PASSWORD:bankingcore}
+    # No default: must come from the environment (see .env.example). A placeholder
+    # here - even an obvious dev one - reads as a hardcoded secret to scanners
+    # (and to anyone skimming the repo), so this is intentionally required.
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -17,10 +20,11 @@ server:
 
 app:
   jwt:
-    # dev-only placeholder; override with a real secret via JWT_SECRET in production
-    secret: ${JWT_SECRET:replace-this-with-a-very-long-dev-secret-at-least-32-chars}
+    # No default on purpose - see DB_PASSWORD above. Must be a long random value.
+    secret: ${JWT_SECRET}
     expiration-seconds: ${JWT_EXPIRATION_SECONDS:10800}
   admin:
-    # seeded on startup if no user with this email exists yet; override in production
+    # Seeded on startup if no user with this email exists yet. No default password
+    # on purpose - see DB_PASSWORD above.
     email: ${ADMIN_EMAIL:admin@bankingcore.local}
-    password: ${ADMIN_PASSWORD:ChangeMe123!}
+    password: ${ADMIN_PASSWORD}

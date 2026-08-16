@@ -13,8 +13,10 @@ spring:
 
 app:
   jwt:
-    secret: "test-only-secret-key-at-least-32-characters-long"
+    # Not a real secret: fixture data for the test H2 database, never deployed.
+    secret: "this-is-test-fixture-data-not-a-real-secret-do-not-reuse-it"
     expiration-seconds: 3600
   admin:
     email: admin@bankingcore.local
-    password: TestOnlyAdmin123!
+    # Not a real secret: fixture data for the test H2 database, never deployed.
+    password: "this-is-test-fixture-data-not-a-real-secret-do-not-reuse-it"
