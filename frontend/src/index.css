@@ -1,0 +1,324 @@
+:root {
+  --bg: #f5f6fa;
+  --surface: #ffffff;
+  --border: #e2e5eb;
+  --text: #1a1d29;
+  --text-muted: #6b7280;
+  --primary: #2f6fed;
+  --primary-hover: #2559c7;
+  --danger: #d9364f;
+  --danger-hover: #b32941;
+  --success: #1f9d55;
+  --warning: #d97706;
+  --radius: 10px;
+
+  color-scheme: light;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0 0 16px;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin: 0 0 12px;
+}
+
+a {
+  color: var(--primary);
+}
+
+/* Navbar */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.navbar-links a {
+  text-decoration: none;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.navbar-user {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Forms */
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+input,
+select {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+input:focus,
+select:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button.danger {
+  background: var(--danger);
+}
+
+button.danger:hover:not(:disabled) {
+  background: var(--danger-hover);
+}
+
+.link-button {
+  background: none;
+  color: var(--primary);
+  font-weight: 500;
+  padding: 0;
+  margin-bottom: 16px;
+  align-self: flex-start;
+}
+
+.link-button:hover {
+  background: none;
+  text-decoration: underline;
+}
+
+.inline-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.inline-form label {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 160px;
+}
+
+/* Auth pages */
+.auth-page {
+  display: flex;
+  justify-content: center;
+  padding-top: 40px;
+}
+
+.auth-page .card {
+  width: 100%;
+  max-width: 380px;
+}
+
+.auth-page button {
+  width: 100%;
+  margin-top: 4px;
+}
+
+/* Accounts grid */
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.account-card {
+  text-decoration: none;
+  color: var(--text);
+  display: block;
+  transition: box-shadow 0.15s;
+}
+
+.account-card:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.account-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.account-balance {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 4px 0;
+}
+
+.account-id {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* Status badges */
+.status-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.status-active {
+  background: #e6f7ec;
+  color: var(--success);
+}
+
+.status-blocked {
+  background: #fff4e5;
+  color: var(--warning);
+}
+
+.status-closed {
+  background: #f1f2f4;
+  color: var(--text-muted);
+}
+
+/* Operations grid (deposit/withdraw/transfer) */
+.operations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.operations-grid .card {
+  margin-bottom: 0;
+}
+
+.operations-grid form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Tables */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-actions button {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+/* Errors */
+.error-message {
+  background: #fdecef;
+  color: var(--danger);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin: 8px 0;
+}
+
+.badge {
+  background: var(--primary);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+  margin-left: 4px;
+}
