@@ -33,8 +33,11 @@ public class SecurityConfig {
         this.restAccessDeniedHandler = restAccessDeniedHandler;
     }
 
+    // NOPMD - SignatureDeclareThrowsException: HttpSecurity#build() itself
+    // declares "throws Exception"; this signature is imposed by Spring
+    // Security's API, not something this method can narrow.
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception { // NOPMD
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

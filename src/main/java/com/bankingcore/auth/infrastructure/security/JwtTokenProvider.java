@@ -62,19 +62,19 @@ public class JwtTokenProvider implements TokenProvider {
             String email = claims.get(CLAIM_EMAIL, String.class);
             UserRole role = UserRole.valueOf(claims.get(CLAIM_ROLE, String.class));
             return new TokenClaims(userId, email, role);
-        } catch (RuntimeException exception) {
+        } catch (RuntimeException exception) { // NOPMD - AvoidCatchingGenericException
             // Broad on purpose: a token is client-supplied, untrusted input. Any
             // failure while parsing or reading its claims - including a missing
             // "role" claim, which makes Enum.valueOf throw a NullPointerException
             // rather than an IllegalArgumentException - must become "invalid
             // token", never an unhandled exception out of the security filter.
-            throw new InvalidTokenException();
+            throw new InvalidTokenException(exception);
         }
     }
 
     private static class InvalidTokenException extends AuthenticationFailedException {
-        InvalidTokenException() {
-            super("Invalid or expired token", "INVALID_TOKEN");
+        InvalidTokenException(Throwable cause) {
+            super("Invalid or expired token", "INVALID_TOKEN", cause);
         }
     }
 }

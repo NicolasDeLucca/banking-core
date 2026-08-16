@@ -7,7 +7,7 @@ import java.time.Instant;
  * An immutable ledger entry: once recorded, a transaction is a historical fact
  * and is never modified, only ever read (no behavior beyond its own creation).
  */
-public class Transaction {
+public final class Transaction {
 
     private final Long id;
     private final Long accountId;
@@ -25,8 +25,13 @@ public class Transaction {
         this.occurredAt = occurredAt;
     }
 
-    /** @param relatedAccountId the counterpart account for TRANSFER_IN/TRANSFER_OUT, null for DEPOSIT/WITHDRAW */
-    public static Transaction record(Long accountId, Long relatedAccountId, TransactionType type, BigDecimal amount, Instant occurredAt) {
+    /**
+     * @param relatedAccountId the counterpart account for TRANSFER_IN/TRANSFER_OUT, null for DEPOSIT/WITHDRAW
+     * NOPMD - CyclomaticComplexity: four independent, sequential guard clauses;
+     * splitting them into a separate method would move the complexity, not
+     * reduce it, and would make the validation harder to read as one step.
+     */
+    public static Transaction record(Long accountId, Long relatedAccountId, TransactionType type, BigDecimal amount, Instant occurredAt) { // NOPMD
         if (accountId == null) {
             throw new IllegalArgumentException("accountId is required");
         }

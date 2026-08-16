@@ -1,6 +1,7 @@
 package com.bankingcore.auth.application;
 
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Optional;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -53,6 +54,6 @@ public class LoginUserUseCase {
     }
 
     private static String normalize(String email) {
-        return email == null ? null : email.trim().toLowerCase();
+        return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
     }
 }

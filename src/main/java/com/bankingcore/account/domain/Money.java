@@ -11,10 +11,10 @@ public final class Money {
 
     private static final int SCALE = 2;
 
-    private final BigDecimal amount;
+    private final BigDecimal value;
 
-    private Money(BigDecimal amount) {
-        this.amount = amount;
+    private Money(BigDecimal value) {
+        this.value = value;
     }
 
     public static Money of(BigDecimal amount) {
@@ -32,12 +32,12 @@ public final class Money {
     }
 
     public Money add(Money other) {
-        return new Money(this.amount.add(other.amount));
+        return new Money(this.value.add(other.value));
     }
 
     /** @throws IllegalStateException if the result would be negative (callers must check sufficiency first) */
     public Money subtract(Money other) {
-        BigDecimal result = this.amount.subtract(other.amount);
+        BigDecimal result = this.value.subtract(other.value);
         if (result.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalStateException("Resulting amount cannot be negative");
         }
@@ -45,35 +45,33 @@ public final class Money {
     }
 
     public boolean isLessThan(Money other) {
-        return this.amount.compareTo(other.amount) < 0;
+        return this.value.compareTo(other.value) < 0;
     }
 
     public boolean isZero() {
-        return this.amount.compareTo(BigDecimal.ZERO) == 0;
+        return this.value.compareTo(BigDecimal.ZERO) == 0;
     }
 
     public boolean isPositive() {
-        return this.amount.compareTo(BigDecimal.ZERO) > 0;
+        return this.value.compareTo(BigDecimal.ZERO) > 0;
     }
 
     public BigDecimal amount() {
-        return amount;
+        return value;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Money other)) return false;
-        return this.amount.compareTo(other.amount) == 0;
+        return this == o || (o instanceof Money other && this.value.compareTo(other.value) == 0);
     }
 
     @Override
     public int hashCode() {
-        return amount.stripTrailingZeros().hashCode();
+        return value.stripTrailingZeros().hashCode();
     }
 
     @Override
     public String toString() {
-        return amount.toString();
+        return value.toString();
     }
 }

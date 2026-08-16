@@ -5,7 +5,7 @@ package com.bankingcore.account.domain;
  * Expert): the balance can only ever change through its own behavior, never
  * via a setter. No dependency on Spring/JPA — see account.infrastructure.
  */
-public class Account {
+public final class Account {
 
     private final Long id;
     private final Long ownerId;

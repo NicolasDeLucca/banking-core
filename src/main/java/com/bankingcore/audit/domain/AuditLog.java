@@ -8,7 +8,7 @@ import java.time.Instant;
  * a sink that translates events from other modules, and shouldn't force those
  * modules to depend on audit's own vocabulary.
  */
-public class AuditLog {
+public final class AuditLog {
 
     private final Long id;
     private final Long actorUserId;

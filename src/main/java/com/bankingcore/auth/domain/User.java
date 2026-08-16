@@ -1,11 +1,13 @@
 package com.bankingcore.auth.domain;
 
+import java.util.Locale;
+
 /**
  * Pure domain entity. Deliberately has no dependency on Spring, JPA or any
  * framework: persistence concerns live in auth.infrastructure.persistence
  * (see UserJpaEntity / UserMapper).
  */
-public class User {
+public final class User {
 
     private final Long id;
     private final String email;
@@ -44,7 +46,7 @@ public class User {
     }
 
     private static String normalize(String email) {
-        return email == null ? null : email.trim().toLowerCase();
+        return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
     }
 
     public Long getId() {
