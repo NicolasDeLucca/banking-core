@@ -1,9 +1,9 @@
 package com.bankingcore.audit.infrastructure.persistence;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 interface AuditLogJpaRepository extends JpaRepository<AuditLogJpaEntity, Long> {
-    List<AuditLogJpaEntity> findAllByOrderByOccurredAtDesc();
+    Page<AuditLogJpaEntity> findAllByOrderByOccurredAtDesc(Pageable pageable);
 }

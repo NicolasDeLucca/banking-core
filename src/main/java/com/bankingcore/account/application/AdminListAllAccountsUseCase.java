@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bankingcore.account.domain.AccountRepository;
+import com.bankingcore.shared.paging.PageRequest;
 
 /** No ownership check by design: reachable only through an ADMIN-protected route. */
 @Service
@@ -18,7 +19,7 @@ public class AdminListAllAccountsUseCase {
     }
 
     @Transactional(readOnly = true)
-    public List<AccountResult> execute() {
-        return accountRepository.findAll().stream().map(AccountResult::from).toList();
+    public List<AccountResult> execute(Integer page, Integer size) {
+        return accountRepository.findAll(PageRequest.of(page, size)).stream().map(AccountResult::from).toList();
     }
 }

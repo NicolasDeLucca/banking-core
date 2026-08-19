@@ -1,5 +1,7 @@
 package com.bankingcore.shared.error;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +14,8 @@ import com.bankingcore.shared.error.dtos.ApiErrorResponse;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ApiErrorResponse> handleConflict(ConflictException exception) {
@@ -36,6 +40,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessRuleViolationException.class)
     public ResponseEntity<ApiErrorResponse> handleBusinessRuleViolation(BusinessRuleViolationException exception) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, exception);
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiErrorResponse> handleRateLimitExceeded(RateLimitExceededException exception) {
+        return build(HttpStatus.TOO_MANY_REQUESTS, exception);
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
@@ -65,8 +74,14 @@ public class GlobalExceptionHandler {
                 .body(new ApiErrorResponse("NOT_FOUND", "No such endpoint"));
     }
 
+    // Last resort - anything that reaches here is a bug or an unmapped
+    // infrastructure failure, not a business rule the caller can act on, so
+    // (unlike every handler above) it's worth a stack trace: the response
+    // body deliberately stays generic, but the log line is what makes this
+    // diagnosable at all instead of vanishing without a trace.
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleGeneric(Exception exception) {
+        LOG.error("Unhandled exception reached GlobalExceptionHandler", exception);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ApiErrorResponse("INTERNAL_ERROR", "Unexpected server error"));
     }

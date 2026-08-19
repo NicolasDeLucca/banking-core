@@ -6,6 +6,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.bankingcore.transaction.application.ListAccountTransactionsUseCase;
@@ -23,8 +24,13 @@ public class TransactionController {
     }
 
     @GetMapping
-    public List<TransactionResponse> list(@AuthenticationPrincipal Long currentUserId, @PathVariable Long accountId) {
-        return listAccountTransactionsUseCase.execute(accountId, currentUserId).stream()
+    public List<TransactionResponse> list(
+            @AuthenticationPrincipal Long currentUserId,
+            @PathVariable Long accountId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size
+    ) {
+        return listAccountTransactionsUseCase.execute(accountId, currentUserId, page, size).stream()
                 .map(this::toResponse)
                 .toList();
     }

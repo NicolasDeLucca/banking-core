@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.bankingcore.account.application.AccountResult;
@@ -47,8 +48,11 @@ public class AdminAccountController {
     }
 
     @GetMapping
-    public List<AccountResponse> listAll() {
-        return adminListAllAccountsUseCase.execute().stream().map(this::toResponse).toList();
+    public List<AccountResponse> listAll(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size
+    ) {
+        return adminListAllAccountsUseCase.execute(page, size).stream().map(this::toResponse).toList();
     }
 
     @GetMapping("/{accountId}")

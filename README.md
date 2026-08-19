@@ -149,6 +149,20 @@ setter.
   self-service feature. `AdminUserSeeder` provisions exactly one admin
   account on startup (from `ADMIN_EMAIL`/`ADMIN_PASSWORD`) if none exists
   yet.
+- **Login lockout.** `/api/auth/login` tracks failed attempts per email
+  (`InMemoryLoginAttemptGuard`) and locks that email out with `429
+  TOO_MANY_ATTEMPTS` for a cooldown period after too many failures within a
+  window — configurable via `LOGIN_MAX_ATTEMPTS` (default 5),
+  `LOGIN_WINDOW_MINUTES` and `LOGIN_LOCKOUT_MINUTES` (default 15 each). A
+  locked-out attempt is rejected before the password is even compared,
+  including with the *correct* password. This is in-memory and per-instance
+  by design (see [Design decisions](#design-decisions--known-trade-offs)) —
+  correct for the single-deployable shape this runs in today, not for a
+  horizontally-scaled one.
+- **Containers run as non-root.** Both the API (`app` user) and the
+  frontend (nginx's built-in `nginx` user, via the
+  `nginxinc/nginx-unprivileged` base image) drop root inside their
+  containers.
 - Every 401/403 response — whether from a bad login, a missing token, an
   expired token, or an authorization failure — returns the same
   `{"code": "...", "message": "..."}` shape.
@@ -181,14 +195,21 @@ All endpoints except `/api/auth/**` require `Authorization: Bearer <token>`.
 | POST | `/api/accounts/{id}/withdraw` | Withdraw from an owned account |
 | POST | `/api/accounts/{id}/transfer` | Transfer to any account |
 | POST | `/api/accounts/{id}/close` | Close an owned account (balance must be zero) |
-| GET | `/api/accounts/{id}/transactions` | Ledger for an owned account |
-| GET | `/api/admin/accounts` | List every account *(ADMIN)* |
+| GET | `/api/accounts/{id}/transactions` | Ledger for an owned account, paginated |
+| GET | `/api/admin/accounts` | List every account, paginated *(ADMIN)* |
 | GET | `/api/admin/accounts/{id}` | View any account *(ADMIN)* |
 | POST | `/api/admin/accounts/{id}/block` | Block any account *(ADMIN)* |
 | POST | `/api/admin/accounts/{id}/activate` | Reactivate a blocked account *(ADMIN)* |
 | POST | `/api/admin/accounts/{id}/close` | Force-close any account *(ADMIN)* |
-| GET | `/api/admin/audit-logs` | Full audit trail *(ADMIN)* |
+| GET | `/api/admin/audit-logs` | Full audit trail, paginated *(ADMIN)* |
 | GET | `/actuator/health` | Liveness check, public, backs the Docker `HEALTHCHECK` |
+
+The three "paginated" endpoints above take optional `page` (0-based) and
+`size` query params, e.g. `?page=1&size=10`. Omitted, they default to page 0
+/ size 20; `size` is silently clamped to 100 regardless of what's requested,
+so a client can't force an unbounded response (`shared.paging.PageRequest`).
+The frontend doesn't send these params or expose paging controls yet — fine
+for demo-sized data, a real gap past a couple dozen rows.
 
 ## Configuration
 
@@ -207,6 +228,7 @@ Copy [`.env.example`](.env.example) to `.env` and fill in real values:
 | `JWT_SECRET` | HMAC signing key (32+ random chars) |
 | `JWT_EXPIRATION_SECONDS` | Token lifetime (default 10800 = 3h) |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Seeded once on first startup |
+| `LOGIN_MAX_ATTEMPTS`, `LOGIN_WINDOW_MINUTES`, `LOGIN_LOCKOUT_MINUTES` | Login lockout thresholds (defaults 5 / 15 / 15) |
 | `APP_PORT` | Host port for the API container (default 8080) |
 | `FRONTEND_PORT` | Host port for the frontend container (default 5173) |
 
