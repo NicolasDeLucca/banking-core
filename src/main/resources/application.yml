@@ -14,9 +14,38 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  lifecycle:
+    # Stop accepting new requests, let in-flight ones finish, then force-close -
+    # instead of Docker's SIGTERM cutting a request off mid-flight (docker-compose
+    # gives containers 10s by default before SIGKILL; keep this comfortably under that).
+    timeout-per-shutdown-phase: 8s
 
 server:
   port: 8080
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # health is exposed by default; info/metrics are opt-in and, per
+        # SecurityConfig, require ADMIN (unlike health, which stays public
+        # for the Docker HEALTHCHECK).
+        include: health, info, metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          # Default readiness group is just the readinessState flag - adding
+          # db makes the Docker HEALTHCHECK (which targets /readiness, see
+          # Dockerfile) actually verify the app can reach Postgres, not just
+          # that the JVM booted.
+          include: readinessState, db
+  info:
+    build:
+      enabled: true
 
 logging:
   pattern:

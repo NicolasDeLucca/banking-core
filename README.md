@@ -190,7 +190,24 @@ production incident debuggable instead of a mystery:
   body deliberately stays generic (never leaks the real exception message
   to the client), but the log line + request id together make it
   diagnosable.
-- **`/actuator/health`** backs the Docker `HEALTHCHECK` on both containers.
+- **Actuator, split by audience.** `/actuator/health` (and its
+  `/liveness`/`/readiness` sub-paths) is public — the Docker `HEALTHCHECK`
+  on both containers, and anything else probing the app, can't
+  authenticate. `/actuator/info` and `/actuator/metrics` require `ADMIN`
+  (`SecurityConfig`), same as `/api/admin/**` — operational data isn't
+  meant for just-any authenticated user.
+  - `readiness` isn't just "the JVM booted" — its health group includes the
+    `db` indicator (`application.yml`), so it only reports `UP` once the
+    app can actually reach Postgres. The Docker `HEALTHCHECK` targets this
+    one specifically, not the plain aggregate `/health`.
+  - `/actuator/info` returns real build metadata (name, version, build
+    time) via the `build-info` Maven goal, not an empty `{}`.
+- **Graceful shutdown.** `server.shutdown=graceful` +
+  `spring.lifecycle.timeout-per-shutdown-phase=8s` — Tomcat stops taking
+  new requests and waits for in-flight ones to finish (up to 8s) instead of
+  Docker's `SIGTERM` cutting one off mid-response; 8s stays comfortably
+  under Compose's 10s default grace period before it escalates to
+  `SIGKILL`.
 
 ## Tech stack
 
@@ -227,7 +244,9 @@ All endpoints except `/api/auth/**` require `Authorization: Bearer <token>`.
 | POST | `/api/admin/accounts/{id}/activate` | Reactivate a blocked account *(ADMIN)* |
 | POST | `/api/admin/accounts/{id}/close` | Force-close any account *(ADMIN)* |
 | GET | `/api/admin/audit-logs` | Full audit trail, paginated *(ADMIN)* |
-| GET | `/actuator/health` | Liveness check, public, backs the Docker `HEALTHCHECK` |
+| GET | `/actuator/health` (`/liveness`, `/readiness`) | Health check, public, backs the Docker `HEALTHCHECK` |
+| GET | `/actuator/info` | Build metadata *(ADMIN)* |
+| GET | `/actuator/metrics` | Runtime metrics *(ADMIN)* |
 
 The three "paginated" endpoints above take optional `page` (0-based) and
 `size` query params, e.g. `?page=1&size=10`. Omitted, they default to page 0
@@ -275,6 +294,9 @@ static build served by nginx). The API is available at
 `http://localhost:8080`, the frontend at `http://localhost:5173`. Each
 of the two app containers has a `HEALTHCHECK` (`docker compose ps` shows
 `healthy` once ready); the frontend waits on the API's before starting.
+Each service also has a memory/CPU limit (`mem_limit`/`cpus` in
+`docker-compose.yml`) — generous for a demo, just enough that a runaway
+container can't starve the host.
 
 To run only the backend (e.g. while developing the frontend locally with
 hot reload instead), omit the `frontend` service:
@@ -354,10 +376,12 @@ mvn test
   — the full stack through MockMvc (real JWT filter included): register →
   login → accounts → transfers → ledger → RBAC → audit trail → login
   lockout → bean validation failures → unmapped routes →
-  `/actuator/health` → every response carrying a unique `X-Request-Id`,
-  including ones Spring Security rejects before reaching a controller.
+  `/actuator/health` (+ its `liveness`/`readiness` sub-paths) →
+  `/actuator/info`/`/actuator/metrics` requiring `ADMIN` → every response
+  carrying a unique `X-Request-Id`, including ones Spring Security rejects
+  before reaching a controller.
 
-83 tests, all against H2, so `mvn test` never needs Docker or a real
+85 tests, all against H2, so `mvn test` never needs Docker or a real
 database. ~98% line coverage as of the last pass — a byproduct of testing
 every branch that matters, not a target chased for its own sake; a few
 points are deliberately left uncovered (the `main()` bootstrap method,

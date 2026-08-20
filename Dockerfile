@@ -18,6 +18,9 @@ COPY --from=build --chown=app:app /app/target/*.jar app.jar
 USER app
 EXPOSE 8080
 # wget (BusyBox) is already on the Alpine base - no curl needed.
+# /readiness (not the plain aggregate /health) so this only reports healthy
+# once the app can actually reach Postgres, not just once the JVM booted -
+# see the readiness group's "db" indicator in application.yml.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=5 \
-    CMD wget -q -O- http://localhost:8080/actuator/health | grep -q '"status":"UP"' || exit 1
+    CMD wget -q -O- http://localhost:8080/actuator/health/readiness | grep -q '"status":"UP"' || exit 1
 ENTRYPOINT ["java", "-jar", "app.jar"]

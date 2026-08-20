@@ -43,6 +43,23 @@ class GlobalExceptionHandlerIntegrationTest {
     }
 
     @Test
+    void livenessAndReadinessProbesArePubliclyReachableAndUp() throws Exception {
+        // Public like /actuator/health itself (SecurityConfig matches
+        // /actuator/health/** before the /actuator/** ADMIN rule) - the
+        // Docker HEALTHCHECK and any orchestrator probe can't authenticate.
+        mockMvc.perform(get("/actuator/health/liveness"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"status\":\"UP\"}"));
+
+        // readiness's group includes the db indicator (see application.yml),
+        // so this also proves the app can actually reach the database, not
+        // just that the JVM finished booting.
+        mockMvc.perform(get("/actuator/health/readiness"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"status\":\"UP\"}"));
+    }
+
+    @Test
     void beanValidationFailureReturnsBadRequestNotInternalError() throws Exception {
         // password too short (@Size(min = 8)) - triggers MethodArgumentNotValidException.
         mockMvc.perform(post("/api/auth/register")

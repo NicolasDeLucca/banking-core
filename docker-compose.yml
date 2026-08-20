@@ -15,6 +15,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    # Generous for a single-database demo instance - just enough to stop a
+    # runaway query or connection leak from starving the host, not a real
+    # capacity plan.
+    mem_limit: 256m
+    cpus: 0.5
 
   app:
     build: .
@@ -39,11 +44,17 @@ services:
     ports:
       - "${APP_PORT:-8080}:8080"
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8080/actuator/health"]
+      # /readiness, not the plain aggregate /health - see Dockerfile.
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8080/actuator/health/readiness"]
       interval: 10s
       timeout: 3s
       start_period: 30s
       retries: 5
+    # The JVM auto-sizes its heap off the container's memory limit
+    # (UseContainerSupport, default-on since JDK 10) - no explicit -Xmx
+    # needed, it just respects this.
+    mem_limit: 512m
+    cpus: 1.0
 
   frontend:
     build:
@@ -65,6 +76,9 @@ services:
       # frontend/Dockerfile) can't bind the privileged port 80 as a
       # non-root user.
       - "${FRONTEND_PORT:-5173}:8080"
+    # A static file server needs very little.
+    mem_limit: 128m
+    cpus: 0.25
 
 volumes:
   banking-core-db-data:
