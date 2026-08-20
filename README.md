@@ -208,8 +208,11 @@ The three "paginated" endpoints above take optional `page` (0-based) and
 `size` query params, e.g. `?page=1&size=10`. Omitted, they default to page 0
 / size 20; `size` is silently clamped to 100 regardless of what's requested,
 so a client can't force an unbounded response (`shared.paging.PageRequest`).
-The frontend doesn't send these params or expose paging controls yet — fine
-for demo-sized data, a real gap past a couple dozen rows.
+The frontend consumes this via a small "Load more" pattern
+(`hooks/usePaginatedList.js`) on the three corresponding views — no
+page-number controls or total count, since the API doesn't return one; a
+"Load more" button just appears while there's a next page and disappears
+once a page comes back short.
 
 ## Configuration
 

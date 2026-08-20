@@ -111,12 +111,13 @@ for a production bundle, but the driver targets the dev server.)
 | `nav <path-or-url>` | Navigate. A bare path (`/login`) is resolved against `FRONTEND_URL`. |
 | `click <selector>` | Playwright `.click(selector)`. |
 | `click-text <words...>` | Clicks the first `button`/`a`/`[role=button]` whose text matches exactly, falling back to a substring match. Use when a CSS selector for the element would be fragile (no id/class, just visible text like "Open account"). |
-| `fill <selector> <words...>` | Fills a single-match input. Everything after the selector is joined with spaces as the value. |
+| `fill <selector> <words...>` | Fills a single-match input. Everything after the selector is joined with spaces as the value. If the selector looks password/secret/token-ish, the logged value is masked (`***`) instead of echoed in plain text. |
 | `select-option <selector> <value>` | `.selectOption(selector, value)` for a `<select>`. |
 | `wait <selector>` | Waits up to 10s for a selector to appear (Playwright's `:has-text("...")` pseudo-class works here too, e.g. `wait .account-balance:has-text("500")` — use this instead of just waiting for the element, which may already exist with stale content before an async update lands). |
 | `wait-url <pattern>` | Waits for the URL to match `**<pattern>` (glob). See Gotchas — trailing-slash patterns don't match a following path segment. |
 | `text <selector>` | Prints `innerText` of a selector (or `document.body` if omitted). |
 | `register-random-user` | Registers a fresh user with a timestamp-unique email and a fixed password, and waits for the post-register redirect to `/`. The fastest way into an authenticated state — this app auto-logs-in on register. |
+| `login <email> <password>` | Logs in with existing credentials (e.g. the seeded admin, `admin@bankingcore.local` — password is whatever `ADMIN_PASSWORD` was set to). Waits for `text=Accounts` rather than `wait-url /`, for the same reason noted in Gotchas. |
 | `url` | Prints the current page URL. |
 | `deposit <amount>` | On an account-detail page, fills and submits the **Deposit** form specifically (there are three inline forms — Deposit/Withdraw/Transfer — each with their own `input[type="number"]`, so a plain selector is ambiguous; this scopes to the form containing the "Deposit" label). |
 | `balance` | Prints the `.account-balance` text of the current account-detail page. |
@@ -180,19 +181,31 @@ npm run lint
   still showing — the driver reported `$0` on a real run doing this.
   Wait for the specific text instead: `wait .account-balance:has-
   text("500")`.
-- **`wait-url` with a trailing-slash pattern doesn't match a path with
-  more after it.** `wait-url /accounts/` times out even once the URL
-  is `.../accounts/2`, because the glob `**` + `/accounts/` requires
-  the URL to *end* at that slash. Wait for content on the destination
-  page instead (`wait text=Deposit` worked reliably here) rather than
-  the URL shape.
-- **The backend has a broken `/actuator/health`** — it 500s with the
-  app's generic `{"code":"INTERNAL_ERROR",...}` JSON body (no stack
-  trace logged; `GlobalExceptionHandler`'s catch-all doesn't log). This
-  is unrelated to the frontend and doesn't block anything — the real
-  API endpoints (`/api/auth/register`, `/api/auth/login`, etc.) work
-  correctly. `check-backend` deliberately probes `/api/auth/login`
-  instead of `/actuator/health` for this reason.
+- **`wait-url` with a simple pattern can report a match that hasn't
+  actually landed yet.** `wait-url /accounts/` times out even once the
+  URL is `.../accounts/2` (the glob `**` + `/accounts/` requires the
+  URL to *end* at that slash) — but the opposite also happened:
+  `wait-url /` after a login submit reported "url matched" while the
+  page was still on `/login`, and a `nav` issued right after bounced
+  straight back to `/login` because the click's redirect genuinely
+  hadn't happened yet. Wait for content on the destination page
+  instead (`wait text=Deposit`, `wait text=Accounts`) rather than the
+  URL shape — that's what `login` and `register-random-user` both do
+  internally, and it's been reliable every time.
+- **A hard `nav` to a client-side route works fine as long as auth
+  state has actually landed first.** The SPA persists its token to
+  `localStorage` (survives a full reload/`nav`, not just client-side
+  routing), so e.g. `nav /admin` after `login` renders the admin page
+  correctly — the failure mode above was a race in the *test script*
+  (navigating before login's redirect finished), not a bug in the app.
+- **List endpoints paginate now** (`/api/admin/audit-logs`,
+  `/api/admin/accounts`, `/api/accounts/{id}/transactions` — 20 rows
+  per page). The corresponding pages show a "Load more" button
+  (`.load-more` / text "Load more") when there's another page; it
+  disappears once the last page returns fewer than 20 rows. Verified
+  by seeding 25 transactions on one account via `curl` and clicking
+  through: first render shows exactly 20 rows, `click-text Load more`
+  appends the rest, button disappears.
 
 ## Troubleshooting
 
