@@ -311,16 +311,30 @@ mvn test
 - **Domain unit tests** (`AccountTest`, `MoneyTest`, `UserTest`,
   `TransactionTest`, `AuditLogTest`) — every business rule listed above,
   in isolation, no Spring context.
-- **Use case tests** (`TransferMoneyUseCaseTest`, `JwtTokenProviderTest`) —
-  mocked dependencies, including token-parsing edge cases (expired,
-  tampered, missing claims).
+- **Use case tests** (`TransferMoneyUseCaseTest`, `WithdrawMoneyUseCaseTest`,
+  `CloseAccountUseCaseTest`, `GetAccountDetailsUseCaseTest`,
+  `ListUserAccountsUseCaseTest`, `JwtTokenProviderTest`) — mocked
+  dependencies: every domain exception each use case can throw (not found,
+  unauthorized, wrong account state, insufficient funds…), plus
+  token-parsing edge cases (expired, tampered, missing claims).
+- **`GlobalExceptionHandlerTest`** — every exception category's HTTP
+  status/error-code mapping, as a plain unit test (no Spring context
+  needed for a POJO `@RestControllerAdvice`); asserts the generic 500
+  path never leaks the real exception's message into the response body.
+- **`PageRequestTest`** — the page/size normalization and clamping rules
+  in isolation (negative page, zero/negative size, oversized size).
 - **Integration tests** (`BankingFlowIntegrationTest`,
-  `AdminAuthorizationIntegrationTest`) — the full stack through MockMvc
-  (real JWT filter included): register → login → accounts → transfers →
-  ledger → RBAC → audit trail.
+  `AdminAuthorizationIntegrationTest`, `LoginAttemptGuardIntegrationTest`,
+  `GlobalExceptionHandlerIntegrationTest`) — the full stack through
+  MockMvc (real JWT filter included): register → login → accounts →
+  transfers → ledger → RBAC → audit trail → login lockout → bean
+  validation failures → unmapped routes → `/actuator/health`.
 
-All of it runs against H2, so `mvn test` never needs Docker or a real
-database.
+81 tests, all against H2, so `mvn test` never needs Docker or a real
+database. ~98% line coverage as of the last pass — a byproduct of testing
+every branch that matters, not a target chased for its own sake; a few
+points are deliberately left uncovered (the `main()` bootstrap method,
+some JPA-adapter plumbing) where a test would just restate the code.
 
 ### Code quality
 
