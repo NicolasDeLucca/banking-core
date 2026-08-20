@@ -1,31 +1,22 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/useAuth";
 import { api } from "../api/client";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { usePaginatedList } from "../hooks/usePaginatedList";
 
 export function AdminPage() {
   const { token } = useAuth();
-  const [accounts, setAccounts] = useState([]);
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const [accountData, auditData] = await Promise.all([api.adminListAccounts(token), api.adminAuditLogs(token)]);
-      setAccounts(accountData);
-      setAuditLogs(auditData);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fetchAccountsPage = useCallback((page, size) => api.adminListAccounts(token, page, size), [token]);
+  const fetchAuditLogsPage = useCallback((page, size) => api.adminAuditLogs(token, page, size), [token]);
+  const accounts = usePaginatedList(fetchAccountsPage);
+  const auditLogs = usePaginatedList(fetchAuditLogsPage);
 
   useEffect(() => {
-    load();
+    accounts.reload();
+    auditLogs.reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -34,7 +25,11 @@ export function AdminPage() {
     setBusyId(accountId);
     try {
       await action();
-      await load();
+      // Resets both lists back to their first page - simpler than trying to
+      // preserve however many "Load more" pages were open, and an admin
+      // action changing one account's status is a reasonable moment to
+      // resync from the top anyway.
+      await Promise.all([accounts.reload(), auditLogs.reload()]);
     } catch (err) {
       setError(err);
     } finally {
@@ -42,7 +37,7 @@ export function AdminPage() {
     }
   };
 
-  if (loading) return <div className="page">Loading…</div>;
+  if (accounts.loading || auditLogs.loading) return <div className="page">Loading…</div>;
 
   return (
     <div className="page">
@@ -63,7 +58,7 @@ export function AdminPage() {
             </tr>
           </thead>
           <tbody>
-            {accounts.map((account) => (
+            {accounts.items.map((account) => (
               <tr key={account.id}>
                 <td>{account.id}</td>
                 <td>{account.ownerId}</td>
@@ -106,6 +101,13 @@ export function AdminPage() {
             ))}
           </tbody>
         </table>
+        {accounts.hasMore && (
+          <div className="load-more">
+            <button type="button" disabled={accounts.loadingMore} onClick={accounts.loadMore}>
+              {accounts.loadingMore ? "Loading…" : "Load more"}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="card">
@@ -120,7 +122,7 @@ export function AdminPage() {
             </tr>
           </thead>
           <tbody>
-            {auditLogs.map((entry) => (
+            {auditLogs.items.map((entry) => (
               <tr key={entry.id}>
                 <td>{entry.action}</td>
                 <td>{entry.actorUserId ?? "—"}</td>
@@ -132,6 +134,13 @@ export function AdminPage() {
             ))}
           </tbody>
         </table>
+        {auditLogs.hasMore && (
+          <div className="load-more">
+            <button type="button" disabled={auditLogs.loadingMore} onClick={auditLogs.loadMore}>
+              {auditLogs.loadingMore ? "Loading…" : "Load more"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

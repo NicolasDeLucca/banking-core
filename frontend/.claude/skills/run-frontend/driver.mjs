@@ -87,9 +87,14 @@ const COMMANDS = {
   async fill(sel, ...words) {
     if (!page) return console.log("ERROR: launch first");
     const value = words.join(" ");
+    // Selector-based heuristic, not a real secret-detector - good enough to
+    // stop a password typed for a `password`-ish selector from landing in
+    // plain text in this log (and from there, in whatever captured this
+    // command's output - a terminal scrollback, a piped log file, etc).
+    const isSecret = /password|secret|token/i.test(sel);
     try {
       await page.fill(sel, value);
-      console.log("fill", sel, "->", value);
+      console.log("fill", sel, "->", isSecret ? "*".repeat(value.length) : value);
     } catch (e) {
       console.log("fill", sel, "-> ERROR:", e.message);
     }
@@ -137,6 +142,20 @@ const COMMANDS = {
     await page.click('button[type="submit"]');
     await page.waitForURL(FRONTEND_URL + "/");
     console.log("registered and logged in as:", email);
+  },
+
+  // Logs in with existing credentials (e.g. the seeded admin) instead of
+  // registering a fresh user - waits for the post-login redirect to "/",
+  // via content instead of wait-url (see the wait-url gotcha in SKILL.md:
+  // its "/" pattern can report a match before the redirect actually lands).
+  async login(email, password) {
+    if (!page) return console.log("ERROR: launch first");
+    await page.goto(`${FRONTEND_URL}/login`, { waitUntil: "networkidle" });
+    await page.fill('input[type="email"]', email);
+    await page.fill('input[type="password"]', password);
+    await page.click('button[type="submit"]');
+    await page.waitForSelector("text=Accounts", { timeout: 10_000 });
+    console.log("logged in as:", email);
   },
 
   async url() {

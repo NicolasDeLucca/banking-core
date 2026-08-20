@@ -13,6 +13,7 @@ reason attached to it.
 - [Modules](#modules)
 - [Domain rules](#domain-rules)
 - [Security](#security)
+- [Observability](#observability)
 - [Tech stack](#tech-stack)
 - [API](#api)
 - [Configuration](#configuration)
@@ -149,9 +150,64 @@ setter.
   self-service feature. `AdminUserSeeder` provisions exactly one admin
   account on startup (from `ADMIN_EMAIL`/`ADMIN_PASSWORD`) if none exists
   yet.
+- **Login lockout.** `/api/auth/login` tracks failed attempts per email
+  (`InMemoryLoginAttemptGuard`) and locks that email out with `429
+  TOO_MANY_ATTEMPTS` for a cooldown period after too many failures within a
+  window — configurable via `LOGIN_MAX_ATTEMPTS` (default 5),
+  `LOGIN_WINDOW_MINUTES` and `LOGIN_LOCKOUT_MINUTES` (default 15 each). A
+  locked-out attempt is rejected before the password is even compared,
+  including with the *correct* password. This is in-memory and per-instance
+  by design (see [Design decisions](#design-decisions--known-trade-offs)) —
+  correct for the single-deployable shape this runs in today, not for a
+  horizontally-scaled one.
+- **Containers run as non-root.** Both the API (`app` user) and the
+  frontend (nginx's built-in `nginx` user, via the
+  `nginxinc/nginx-unprivileged` base image) drop root inside their
+  containers.
 - Every 401/403 response — whether from a bad login, a missing token, an
   expired token, or an authorization failure — returns the same
   `{"code": "...", "message": "..."}` shape.
+
+## Observability
+
+Deliberately minimal — this is a single deployable (see the
+[4+1 Physical View](docs/4+1-views.md#5-physical-view)), not a distributed
+system, so full tracing/metrics infrastructure would be solving a problem
+this project doesn't have. What's here is the smallest thing that makes a
+production incident debuggable instead of a mystery:
+
+- **Every request gets a correlation id.** `CorrelationIdFilter`
+  (`shared.web`) generates one per request, before Spring Security's own
+  filter chain even runs, and:
+  - returns it in an `X-Request-Id` response header — a caller reporting a
+    problem hands back one value instead of a timestamp and a guess;
+  - puts it in SLF4J's MDC for the life of the request, so every log line
+    for that request — including `GlobalExceptionHandler`'s "Unhandled
+    exception" log — can be tied together by grepping one id
+    (`logging.pattern.level` in `application.yml` prints it on every line).
+- **Unhandled exceptions are logged with a full stack trace** before the
+  generic 500 response goes out (`GlobalExceptionHandler`) — the response
+  body deliberately stays generic (never leaks the real exception message
+  to the client), but the log line + request id together make it
+  diagnosable.
+- **Actuator, split by audience.** `/actuator/health` (and its
+  `/liveness`/`/readiness` sub-paths) is public — the Docker `HEALTHCHECK`
+  on both containers, and anything else probing the app, can't
+  authenticate. `/actuator/info` and `/actuator/metrics` require `ADMIN`
+  (`SecurityConfig`), same as `/api/admin/**` — operational data isn't
+  meant for just-any authenticated user.
+  - `readiness` isn't just "the JVM booted" — its health group includes the
+    `db` indicator (`application.yml`), so it only reports `UP` once the
+    app can actually reach Postgres. The Docker `HEALTHCHECK` targets this
+    one specifically, not the plain aggregate `/health`.
+  - `/actuator/info` returns real build metadata (name, version, build
+    time) via the `build-info` Maven goal, not an empty `{}`.
+- **Graceful shutdown.** `server.shutdown=graceful` +
+  `spring.lifecycle.timeout-per-shutdown-phase=8s` — Tomcat stops taking
+  new requests and waits for in-flight ones to finish (up to 8s) instead of
+  Docker's `SIGTERM` cutting one off mid-response; 8s stays comfortably
+  under Compose's 10s default grace period before it escalates to
+  `SIGKILL`.
 
 ## Tech stack
 
@@ -181,14 +237,26 @@ All endpoints except `/api/auth/**` require `Authorization: Bearer <token>`.
 | POST | `/api/accounts/{id}/withdraw` | Withdraw from an owned account |
 | POST | `/api/accounts/{id}/transfer` | Transfer to any account |
 | POST | `/api/accounts/{id}/close` | Close an owned account (balance must be zero) |
-| GET | `/api/accounts/{id}/transactions` | Ledger for an owned account |
-| GET | `/api/admin/accounts` | List every account *(ADMIN)* |
+| GET | `/api/accounts/{id}/transactions` | Ledger for an owned account, paginated |
+| GET | `/api/admin/accounts` | List every account, paginated *(ADMIN)* |
 | GET | `/api/admin/accounts/{id}` | View any account *(ADMIN)* |
 | POST | `/api/admin/accounts/{id}/block` | Block any account *(ADMIN)* |
 | POST | `/api/admin/accounts/{id}/activate` | Reactivate a blocked account *(ADMIN)* |
 | POST | `/api/admin/accounts/{id}/close` | Force-close any account *(ADMIN)* |
-| GET | `/api/admin/audit-logs` | Full audit trail *(ADMIN)* |
-| GET | `/actuator/health` | Liveness check, public, backs the Docker `HEALTHCHECK` |
+| GET | `/api/admin/audit-logs` | Full audit trail, paginated *(ADMIN)* |
+| GET | `/actuator/health` (`/liveness`, `/readiness`) | Health check, public, backs the Docker `HEALTHCHECK` |
+| GET | `/actuator/info` | Build metadata *(ADMIN)* |
+| GET | `/actuator/metrics` | Runtime metrics *(ADMIN)* |
+
+The three "paginated" endpoints above take optional `page` (0-based) and
+`size` query params, e.g. `?page=1&size=10`. Omitted, they default to page 0
+/ size 20; `size` is silently clamped to 100 regardless of what's requested,
+so a client can't force an unbounded response (`shared.paging.PageRequest`).
+The frontend consumes this via a small "Load more" pattern
+(`hooks/usePaginatedList.js`) on the three corresponding views — no
+page-number controls or total count, since the API doesn't return one; a
+"Load more" button just appears while there's a next page and disappears
+once a page comes back short.
 
 ## Configuration
 
@@ -207,6 +275,7 @@ Copy [`.env.example`](.env.example) to `.env` and fill in real values:
 | `JWT_SECRET` | HMAC signing key (32+ random chars) |
 | `JWT_EXPIRATION_SECONDS` | Token lifetime (default 10800 = 3h) |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Seeded once on first startup |
+| `LOGIN_MAX_ATTEMPTS`, `LOGIN_WINDOW_MINUTES`, `LOGIN_LOCKOUT_MINUTES` | Login lockout thresholds (defaults 5 / 15 / 15) |
 | `APP_PORT` | Host port for the API container (default 8080) |
 | `FRONTEND_PORT` | Host port for the frontend container (default 5173) |
 
@@ -225,6 +294,9 @@ static build served by nginx). The API is available at
 `http://localhost:8080`, the frontend at `http://localhost:5173`. Each
 of the two app containers has a `HEALTHCHECK` (`docker compose ps` shows
 `healthy` once ready); the frontend waits on the API's before starting.
+Each service also has a memory/CPU limit (`mem_limit`/`cpus` in
+`docker-compose.yml`) — generous for a demo, just enough that a runaway
+container can't starve the host.
 
 To run only the backend (e.g. while developing the frontend locally with
 hot reload instead), omit the `frontend` service:
@@ -286,16 +358,34 @@ mvn test
 - **Domain unit tests** (`AccountTest`, `MoneyTest`, `UserTest`,
   `TransactionTest`, `AuditLogTest`) — every business rule listed above,
   in isolation, no Spring context.
-- **Use case tests** (`TransferMoneyUseCaseTest`, `JwtTokenProviderTest`) —
-  mocked dependencies, including token-parsing edge cases (expired,
-  tampered, missing claims).
+- **Use case tests** (`TransferMoneyUseCaseTest`, `WithdrawMoneyUseCaseTest`,
+  `CloseAccountUseCaseTest`, `GetAccountDetailsUseCaseTest`,
+  `ListUserAccountsUseCaseTest`, `JwtTokenProviderTest`) — mocked
+  dependencies: every domain exception each use case can throw (not found,
+  unauthorized, wrong account state, insufficient funds…), plus
+  token-parsing edge cases (expired, tampered, missing claims).
+- **`GlobalExceptionHandlerTest`** — every exception category's HTTP
+  status/error-code mapping, as a plain unit test (no Spring context
+  needed for a POJO `@RestControllerAdvice`); asserts the generic 500
+  path never leaks the real exception's message into the response body.
+- **`PageRequestTest`** — the page/size normalization and clamping rules
+  in isolation (negative page, zero/negative size, oversized size).
 - **Integration tests** (`BankingFlowIntegrationTest`,
-  `AdminAuthorizationIntegrationTest`) — the full stack through MockMvc
-  (real JWT filter included): register → login → accounts → transfers →
-  ledger → RBAC → audit trail.
+  `AdminAuthorizationIntegrationTest`, `LoginAttemptGuardIntegrationTest`,
+  `GlobalExceptionHandlerIntegrationTest`, `CorrelationIdFilterIntegrationTest`)
+  — the full stack through MockMvc (real JWT filter included): register →
+  login → accounts → transfers → ledger → RBAC → audit trail → login
+  lockout → bean validation failures → unmapped routes →
+  `/actuator/health` (+ its `liveness`/`readiness` sub-paths) →
+  `/actuator/info`/`/actuator/metrics` requiring `ADMIN` → every response
+  carrying a unique `X-Request-Id`, including ones Spring Security rejects
+  before reaching a controller.
 
-All of it runs against H2, so `mvn test` never needs Docker or a real
-database.
+85 tests, all against H2, so `mvn test` never needs Docker or a real
+database. ~98% line coverage as of the last pass — a byproduct of testing
+every branch that matters, not a target chased for its own sake; a few
+points are deliberately left uncovered (the `main()` bootstrap method,
+some JPA-adapter plumbing) where a test would just restate the code.
 
 ### Code quality
 

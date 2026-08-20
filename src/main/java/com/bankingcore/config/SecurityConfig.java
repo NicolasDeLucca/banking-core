@@ -49,8 +49,11 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/actuator/health").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // health/** (not just health) so the liveness/readiness
+                        // sub-paths the Docker HEALTHCHECK and any orchestrator
+                        // probe stay public too - only info/metrics need ADMIN.
+                        .requestMatchers("/api/auth/**", "/actuator/health/**").permitAll()
+                        .requestMatchers("/api/admin/**", "/actuator/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())

@@ -14,9 +14,45 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  lifecycle:
+    # Stop accepting new requests, let in-flight ones finish, then force-close -
+    # instead of Docker's SIGTERM cutting a request off mid-flight (docker-compose
+    # gives containers 10s by default before SIGKILL; keep this comfortably under that).
+    timeout-per-shutdown-phase: 8s
 
 server:
   port: 8080
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # health is exposed by default; info/metrics are opt-in and, per
+        # SecurityConfig, require ADMIN (unlike health, which stays public
+        # for the Docker HEALTHCHECK).
+        include: health, info, metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          # Default readiness group is just the readinessState flag - adding
+          # db makes the Docker HEALTHCHECK (which targets /readiness, see
+          # Dockerfile) actually verify the app can reach Postgres, not just
+          # that the JVM booted.
+          include: readinessState, db
+  info:
+    build:
+      enabled: true
+
+logging:
+  pattern:
+    # Slots into Boot's default console pattern (right after the log level)
+    # rather than redefining the whole thing - see shared.web.CorrelationIdFilter.
+    # Empty/absent for log lines outside a request (startup, the admin seeder).
+    level: "%5p [%X{requestId:-}]"
 
 app:
   jwt:
@@ -31,3 +67,9 @@ app:
   cors:
     # Comma-separated. Defaults to the frontend's local Vite dev server.
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  security:
+    login:
+      # Failed-login lockout (per email, in-memory - see InMemoryLoginAttemptGuard).
+      max-attempts: ${LOGIN_MAX_ATTEMPTS:5}
+      window-minutes: ${LOGIN_WINDOW_MINUTES:15}
+      lockout-minutes: ${LOGIN_LOCKOUT_MINUTES:15}

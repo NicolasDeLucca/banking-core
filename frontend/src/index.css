@@ -303,6 +303,24 @@ button.danger:hover:not(:disabled) {
   font-size: 0.85rem;
 }
 
+.load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.load-more button {
+  padding: 6px 16px;
+  font-size: 0.85rem;
+  background: none;
+  color: var(--primary);
+  border: 1px solid var(--border);
+}
+
+.load-more button:hover:not(:disabled) {
+  background: var(--border);
+}
+
 /* Errors */
 .error-message {
   background: #fdecef;

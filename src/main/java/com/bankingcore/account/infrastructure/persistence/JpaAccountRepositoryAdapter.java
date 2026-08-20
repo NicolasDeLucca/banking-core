@@ -3,10 +3,12 @@ package com.bankingcore.account.infrastructure.persistence;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import com.bankingcore.account.domain.Account;
 import com.bankingcore.account.domain.AccountRepository;
+import com.bankingcore.shared.paging.PageRequest;
 
 @Repository
 public class JpaAccountRepositoryAdapter implements AccountRepository {
@@ -48,7 +50,8 @@ public class JpaAccountRepositoryAdapter implements AccountRepository {
     }
 
     @Override
-    public List<Account> findAll() {
-        return jpaRepository.findAll().stream().map(mapper::toDomain).toList();
+    public List<Account> findAll(PageRequest pageRequest) {
+        Pageable pageable = Pageable.ofSize(pageRequest.size()).withPage(pageRequest.page());
+        return jpaRepository.findAll(pageable).stream().map(mapper::toDomain).toList();
     }
 }

@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import { api } from "../api/client";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { usePaginatedList } from "../hooks/usePaginatedList";
 
 export function AccountDetailPage() {
   const { id } = useParams();
@@ -10,7 +11,6 @@ export function AccountDetailPage() {
   const navigate = useNavigate();
 
   const [account, setAccount] = useState(null);
-  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -20,15 +20,16 @@ export function AccountDetailPage() {
   const [transferDestination, setTransferDestination] = useState("");
   const [transferAmount, setTransferAmount] = useState("");
 
-  const load = async () => {
+  const fetchTransactionsPage = useCallback(
+    (page, size) => api.listTransactions(token, id, page, size),
+    [token, id]
+  );
+  const transactions = usePaginatedList(fetchTransactionsPage);
+
+  const loadAccount = async () => {
     setLoading(true);
     try {
-      const [accountData, transactionData] = await Promise.all([
-        api.getAccount(token, id),
-        api.listTransactions(token, id),
-      ]);
-      setAccount(accountData);
-      setTransactions(transactionData);
+      setAccount(await api.getAccount(token, id));
     } catch (err) {
       setError(err);
     } finally {
@@ -37,7 +38,8 @@ export function AccountDetailPage() {
   };
 
   useEffect(() => {
-    load();
+    loadAccount();
+    transactions.reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -46,7 +48,7 @@ export function AccountDetailPage() {
     setBusy(true);
     try {
       await action();
-      await load();
+      await Promise.all([loadAccount(), transactions.reload()]);
     } catch (err) {
       setError(err);
     } finally {
@@ -174,7 +176,7 @@ export function AccountDetailPage() {
 
       <div className="card">
         <h2>Transaction history</h2>
-        {transactions.length === 0 ? (
+        {transactions.items.length === 0 && !transactions.loading ? (
           <p>No transactions yet.</p>
         ) : (
           <table className="table">
@@ -187,7 +189,7 @@ export function AccountDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((tx) => (
+              {transactions.items.map((tx) => (
                 <tr key={tx.id}>
                   <td>{tx.type}</td>
                   <td>${tx.amount}</td>
@@ -197,6 +199,13 @@ export function AccountDetailPage() {
               ))}
             </tbody>
           </table>
+        )}
+        {transactions.hasMore && (
+          <div className="load-more">
+            <button type="button" disabled={transactions.loadingMore} onClick={transactions.loadMore}>
+              {transactions.loadingMore ? "Loading…" : "Load more"}
+            </button>
+          </div>
         )}
       </div>
     </div>

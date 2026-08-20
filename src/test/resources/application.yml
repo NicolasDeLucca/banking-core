@@ -11,6 +11,22 @@ spring:
       hibernate:
         format_sql: true
 
+# src/test/resources/application.yml entirely shadows src/main's (same
+# classpath path, test-classes wins) rather than merging with it - so
+# anything the actuator/observability tests need has to be repeated here.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState, db
+
 app:
   jwt:
     # Not a real secret: fixture data for the test H2 database, never deployed.

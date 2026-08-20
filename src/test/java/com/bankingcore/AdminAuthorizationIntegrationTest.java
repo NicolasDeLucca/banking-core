@@ -50,6 +50,23 @@ class AdminAuthorizationIntegrationTest {
     }
 
     @Test
+    void operationalActuatorEndpointsRequireAdminUnlikeHealth() throws Exception {
+        mockMvc.perform(get("/actuator/metrics")).andExpect(status().isUnauthorized());
+
+        String userToken = registerAndGetToken("plain-user-actuator@example.com");
+        mockMvc.perform(get("/actuator/metrics").header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/actuator/info").header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isForbidden());
+
+        String adminToken = loginAsAdmin();
+        mockMvc.perform(get("/actuator/metrics").header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/actuator/info").header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void adminCanListBlockActivateAndCloseAnyAccountRegardlessOfOwnership() throws Exception {
         String userToken = registerAndGetToken("admin-target-user@example.com");
         Long accountId = createAccount(userToken, "CHECKING");

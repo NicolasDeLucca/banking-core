@@ -84,6 +84,17 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <!-- Writes META-INF/build-info.properties (name, version,
+                         build time) so /actuator/info returns something real
+                         instead of "{}" - management.info.build.enabled
+                         picks this file up automatically. -->
+                    <execution>
+                        <goals>
+                            <goal>build-info</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- Coverage report only - not a gate. The project intentionally

@@ -2,8 +2,10 @@ package com.bankingcore.transaction.infrastructure.persistence;
 
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import com.bankingcore.shared.paging.PageRequest;
 import com.bankingcore.transaction.domain.Transaction;
 import com.bankingcore.transaction.domain.TransactionRepository;
 
@@ -26,8 +28,9 @@ public class JpaTransactionRepositoryAdapter implements TransactionRepository {
     }
 
     @Override
-    public List<Transaction> findAllByAccountId(Long accountId) {
-        return jpaRepository.findAllByAccountIdOrderByOccurredAtDesc(accountId).stream()
+    public List<Transaction> findAllByAccountId(Long accountId, PageRequest pageRequest) {
+        Pageable pageable = Pageable.ofSize(pageRequest.size()).withPage(pageRequest.page());
+        return jpaRepository.findAllByAccountIdOrderByOccurredAtDesc(accountId, pageable).stream()
                 .map(mapper::toDomain)
                 .toList();
     }

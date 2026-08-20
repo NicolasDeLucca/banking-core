@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.bankingcore.account.domain.Account;
 import com.bankingcore.account.domain.AccountNotFoundException;
 import com.bankingcore.account.domain.AccountRepository;
+import com.bankingcore.shared.paging.PageRequest;
 import com.bankingcore.transaction.domain.TransactionRepository;
 
 /**
@@ -27,12 +28,12 @@ public class ListAccountTransactionsUseCase {
     }
 
     @Transactional(readOnly = true)
-    public List<TransactionResult> execute(Long accountId, Long requesterId) {
+    public List<TransactionResult> execute(Long accountId, Long requesterId, Integer page, Integer size) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new AccountNotFoundException(accountId));
         account.verifyOwnedBy(requesterId);
 
-        return transactionRepository.findAllByAccountId(accountId).stream()
+        return transactionRepository.findAllByAccountId(accountId, PageRequest.of(page, size)).stream()
                 .map(TransactionResult::from)
                 .toList();
     }

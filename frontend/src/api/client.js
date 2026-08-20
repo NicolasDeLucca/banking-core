@@ -35,12 +35,13 @@ export const api = {
   transfer: (token, id, destinationAccountId, amount) =>
     request(`/api/accounts/${id}/transfer`, { method: "POST", token, body: { destinationAccountId, amount } }),
   closeAccount: (token, id) => request(`/api/accounts/${id}/close`, { method: "POST", token }),
-  listTransactions: (token, id) => request(`/api/accounts/${id}/transactions`, { token }),
+  listTransactions: (token, id, page = 0, size = 20) =>
+    request(`/api/accounts/${id}/transactions?page=${page}&size=${size}`, { token }),
 
-  adminListAccounts: (token) => request("/api/admin/accounts", { token }),
+  adminListAccounts: (token, page = 0, size = 20) => request(`/api/admin/accounts?page=${page}&size=${size}`, { token }),
   adminGetAccount: (token, id) => request(`/api/admin/accounts/${id}`, { token }),
   adminBlockAccount: (token, id) => request(`/api/admin/accounts/${id}/block`, { method: "POST", token }),
   adminActivateAccount: (token, id) => request(`/api/admin/accounts/${id}/activate`, { method: "POST", token }),
   adminCloseAccount: (token, id) => request(`/api/admin/accounts/${id}/close`, { method: "POST", token }),
-  adminAuditLogs: (token) => request("/api/admin/audit-logs", { token }),
+  adminAuditLogs: (token, page = 0, size = 20) => request(`/api/admin/audit-logs?page=${page}&size=${size}`, { token }),
 };
