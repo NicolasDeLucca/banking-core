@@ -9,7 +9,13 @@ RUN mvn -q -B clean package -DskipTests
 # ---- Runtime stage ----
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
+# Alpine's base image has no non-root user by default - the JVM would
+# otherwise run as root inside the container, which turns any JVM
+# container-escape/arbitrary-file-write vulnerability into a root compromise
+# of the container instead of a restricted one.
+RUN addgroup -S app && adduser -S app -G app
+COPY --from=build --chown=app:app /app/target/*.jar app.jar
+USER app
 EXPOSE 8080
 # wget (BusyBox) is already on the Alpine base - no curl needed.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=5 \
