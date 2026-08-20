@@ -18,6 +18,13 @@ spring:
 server:
   port: 8080
 
+logging:
+  pattern:
+    # Slots into Boot's default console pattern (right after the log level)
+    # rather than redefining the whole thing - see shared.web.CorrelationIdFilter.
+    # Empty/absent for log lines outside a request (startup, the admin seeder).
+    level: "%5p [%X{requestId:-}]"
+
 app:
   jwt:
     # No default on purpose - see DB_PASSWORD above. Must be a long random value.

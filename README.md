@@ -13,6 +13,7 @@ reason attached to it.
 - [Modules](#modules)
 - [Domain rules](#domain-rules)
 - [Security](#security)
+- [Observability](#observability)
 - [Tech stack](#tech-stack)
 - [API](#api)
 - [Configuration](#configuration)
@@ -166,6 +167,30 @@ setter.
 - Every 401/403 response — whether from a bad login, a missing token, an
   expired token, or an authorization failure — returns the same
   `{"code": "...", "message": "..."}` shape.
+
+## Observability
+
+Deliberately minimal — this is a single deployable (see the
+[4+1 Physical View](docs/4+1-views.md#5-physical-view)), not a distributed
+system, so full tracing/metrics infrastructure would be solving a problem
+this project doesn't have. What's here is the smallest thing that makes a
+production incident debuggable instead of a mystery:
+
+- **Every request gets a correlation id.** `CorrelationIdFilter`
+  (`shared.web`) generates one per request, before Spring Security's own
+  filter chain even runs, and:
+  - returns it in an `X-Request-Id` response header — a caller reporting a
+    problem hands back one value instead of a timestamp and a guess;
+  - puts it in SLF4J's MDC for the life of the request, so every log line
+    for that request — including `GlobalExceptionHandler`'s "Unhandled
+    exception" log — can be tied together by grepping one id
+    (`logging.pattern.level` in `application.yml` prints it on every line).
+- **Unhandled exceptions are logged with a full stack trace** before the
+  generic 500 response goes out (`GlobalExceptionHandler`) — the response
+  body deliberately stays generic (never leaks the real exception message
+  to the client), but the log line + request id together make it
+  diagnosable.
+- **`/actuator/health`** backs the Docker `HEALTHCHECK` on both containers.
 
 ## Tech stack
 
@@ -325,12 +350,14 @@ mvn test
   in isolation (negative page, zero/negative size, oversized size).
 - **Integration tests** (`BankingFlowIntegrationTest`,
   `AdminAuthorizationIntegrationTest`, `LoginAttemptGuardIntegrationTest`,
-  `GlobalExceptionHandlerIntegrationTest`) — the full stack through
-  MockMvc (real JWT filter included): register → login → accounts →
-  transfers → ledger → RBAC → audit trail → login lockout → bean
-  validation failures → unmapped routes → `/actuator/health`.
+  `GlobalExceptionHandlerIntegrationTest`, `CorrelationIdFilterIntegrationTest`)
+  — the full stack through MockMvc (real JWT filter included): register →
+  login → accounts → transfers → ledger → RBAC → audit trail → login
+  lockout → bean validation failures → unmapped routes →
+  `/actuator/health` → every response carrying a unique `X-Request-Id`,
+  including ones Spring Security rejects before reaching a controller.
 
-81 tests, all against H2, so `mvn test` never needs Docker or a real
+83 tests, all against H2, so `mvn test` never needs Docker or a real
 database. ~98% line coverage as of the last pass — a byproduct of testing
 every branch that matters, not a target chased for its own sake; a few
 points are deliberately left uncovered (the `main()` bootstrap method,
